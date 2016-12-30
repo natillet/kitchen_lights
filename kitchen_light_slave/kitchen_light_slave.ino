@@ -36,6 +36,7 @@ byte addresses[][6] = {"1Node","2Node"};
 //   NEO_RGBW    Pixels are wired for RGBW bitstream (NeoPixel RGBW products)
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(60, PIN, NEO_GRB + NEO_KHZ800);
 pixelValue_t rcvPixel = {0};
+bool colorUpdate = false;
 
 void setup()
 {
@@ -52,6 +53,7 @@ void setup()
   // Open a writing and reading pipe on each radio, with opposite addresses
   radio.openWritingPipe(addresses[1]);
   radio.openReadingPipe(1,addresses[0]);
+  radio.setPayloadSize(sizeof(pixelValue_t));
   
   // Start the radio listening for data
   radio.startListening();
@@ -68,41 +70,21 @@ void loop()
   
   if (radio.available())
   {
+#ifdef DBG_PRINTS
+    Serial.println(F("Data Available"));
+#endif //DBG_PRINTS
                                                                   // Variable for the received timestamp
     while (radio.available())                                     // While there is data ready
     {
       radio.read(&rcvPixel, sizeof(pixelValue_t));               // Get the payload
     }
+#ifdef DBG_PRINTS
+    Serial.println(F("Received Value"));
+#endif //DBG_PRINTS
 
     strip.setPixelColor(rcvPixel.num, strip.Color(rcvPixel.red, rcvPixel.green, rcvPixel.blue));
     strip.show();
-   
-//    radio.stopListening();                                        // First, stop listening so we can talk   
-//    radio.write(&got_time, sizeof(unsigned long));                // Send the final one back.      
-//    radio.startListening();                                       // Now, resume listening so we catch the next packets.
-//#ifdef DBG_PRINTS    
-//    Serial.print(F("Sent response "));
-//    Serial.println(got_time);
-//#endif //DBG_PRINTS
- }
-
-/****************** Change Roles via Serial Commands ***************************/
-//  if ( Serial.available() )
-//  {
-//    char c = toupper(Serial.read());
-//    if ( c == 'T' && role == 0 ){      
-//      Serial.println(F("*** CHANGING TO TRANSMIT ROLE -- PRESS 'R' TO SWITCH BACK"));
-//      role = 1;                  // Become the primary transmitter (ping out)
-//    
-//   }else
-//    if ( c == 'R' && role == 1 ){
-//      Serial.println(F("*** CHANGING TO RECEIVE ROLE -- PRESS 'T' TO SWITCH BACK"));      
-//       role = 0;                // Become the primary receiver (pong back)
-//       radio.startListening();
-//       
-//    }
-//  }
-
+  }
 
 } // Loop
 

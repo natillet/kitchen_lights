@@ -36,6 +36,7 @@ byte addresses[][6] = {"1Node","2Node"};
 //   NEO_RGBW    Pixels are wired for RGBW bitstream (NeoPixel RGBW products)
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(60, PIN, NEO_GRB + NEO_KHZ800);
 pixelValue_t sendPixel = {0};
+bool colorUpdate = false;
 
 void setup()
 {
@@ -52,28 +53,29 @@ void setup()
   // Open a writing and reading pipe on each radio, with opposite addresses
   radio.openWritingPipe(addresses[0]);
   radio.openReadingPipe(1,addresses[1]);
+  radio.setPayloadSize(sizeof(pixelValue_t));
 
   //Start the Neopixel strip
   strip.begin();
   strip.show(); // Initialize all pixels to 'off'
-  
-#ifdef DBG_PRINTS    
+
+  radio.stopListening();
+#ifdef DBG_PRINTS
   Serial.println(F("Now sending"));
 #endif //DBG_PRINTS
-}
 
-void loop()
-{
+  //set up color
   sendPixel.red = 255;
   sendPixel.blue = 128;
   sendPixel.green = 32;
   sendPixel.num = 3;
-  
-  radio.stopListening();                                    // First, stop listening so we can talk.
+}
 
+void loop()
+{
 //  unsigned long start_time = micros();                             // Take the time, and send it.  This will block until complete
   
-  if (!radio.write(&sendPixel, sizeof(pixelValue_t)))
+  if (!radio.writeBlocking(&sendPixel, sizeof(pixelValue_t), 100))
   {
 #ifdef DBG_PRINTS
     Serial.println(F("Send failed"));
@@ -88,64 +90,40 @@ void loop()
 
   strip.setPixelColor(sendPixel.num, strip.Color(sendPixel.red, sendPixel.green, sendPixel.blue));
   strip.show();
-      
-//  radio.startListening();                                    // Now, continue listening
-//  
-//  unsigned long started_waiting_at = micros();               // Set up a timeout period, get the current microseconds
-//  boolean timeout = false;                                   // Set up a variable to indicate if a response was received or not
-//  
-//  while (!radio.available())                                 // While nothing is received
-//  {
-//    if (micros() - started_waiting_at > 200000)              // If waited longer than 200ms, indicate timeout and exit while loop
-//    {
-//        timeout = true;
-//        break;
-//    }      
-//  }
-//      
-//  if (timeout)
-//  {
-//#ifdef DBG_PRINTS
-//      Serial.println(F("Failed, response timed out."));      // Describe the results
-//#endif //DBG_PRINTS
-//  }
-//  else
-//  {
-//      unsigned long got_time;                                 // Grab the response, compare, and send to debugging spew
-//      radio.read(&got_time, sizeof(unsigned long));
-//      unsigned long end_time = micros();
-//      
-//      // Spew it
-//#ifdef DBG_PRINTS
-//      Serial.print(F("Sent "));
-//      Serial.print(start_time);
-//      Serial.print(F(", Got response "));
-//      Serial.print(got_time);
-//      Serial.print(F(", Round-trip delay "));
-//      Serial.print(end_time-start_time);
-//      Serial.println(F(" microseconds"));
-//#endif //DBG_PRINTS
-//  }
 
-  // Try again 1s later
   delay(1000);
 
 /****************** Change Roles via Serial Commands ***************************/
-//  if ( Serial.available() )
-//  {
-//    char c = toupper(Serial.read());
-//    if ( c == 'T' && role == 0 ){      
-//      Serial.println(F("*** CHANGING TO TRANSMIT ROLE -- PRESS 'R' TO SWITCH BACK"));
-//      role = 1;                  // Become the primary transmitter (ping out)
-//    
-//   }else
-//    if ( c == 'R' && role == 1 ){
-//      Serial.println(F("*** CHANGING TO RECEIVE ROLE -- PRESS 'T' TO SWITCH BACK"));      
-//       role = 0;                // Become the primary receiver (pong back)
-//       radio.startListening();
-//       
-//    }
-//  }
+  if ( Serial.available())
+  {
+    char c = toupper(Serial.read());
+    if (c == 'R')
+    {
+      Serial.println(F("setting color to Red")); 
+      sendPixel.red = 255;
+      sendPixel.blue = 0;
+      sendPixel.green = 0;
+    }
+    else if (c == 'B')
+    {
+      Serial.println(F("setting color to Blue")); 
+      sendPixel.red = 0;
+      sendPixel.blue = 255;
+      sendPixel.green = 0;
+    }
+    else if (c == 'G')
+    {
+      Serial.println(F("setting color to Green")); 
+      sendPixel.red = 0;
+      sendPixel.blue = 0;
+      sendPixel.green = 255;
+    }
+    else if (c >= '0' && c <= '9')
+    {
+      Serial.println(F("setting pixel #")); 
+      sendPixel.num = (c - '0');
+    }
+  }
 
 
 } // Loop
