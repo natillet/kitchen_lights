@@ -19,9 +19,10 @@
 
 typedef struct pixelValue {
   byte red;
-  byte blue;
   byte green;
+  byte blue;
   byte num;
+  byte show;
 } pixelValue_t;
 
 RF24 radio(7,8); // Hardware configuration: Set up nRF24L01 radio on SPI bus plus pins 7 & 8
@@ -72,11 +73,22 @@ void loop()
     }
 
     strip.setPixelColor(rcvPixel.num, strip.Color(rcvPixel.red, rcvPixel.green, rcvPixel.blue));
-    strip.show();
+    if (rcvPixel.show)
+    {
+      strip.show();
+    }
     
-#ifdef DBG_PRINTS    
+#ifdef DBG_PRINTS
     Serial.print(F("Received data: "));
-    Serial.println(rcvPixel.num);
+    Serial.print(rcvPixel.red);
+    Serial.print(F(" "));
+    Serial.print(rcvPixel.green);
+    Serial.print(F(" "));
+    Serial.print(rcvPixel.blue);
+    Serial.print(F(" "));
+    Serial.print(rcvPixel.num);
+    Serial.print(F(" "));
+    Serial.println(rcvPixel.show);
 #endif //DBG_PRINTS
  }
 
