@@ -63,9 +63,7 @@ void setup()
 }
 
 void loop()
-{
-  unsigned long got_time;
-  
+{  
   if (radio.available())
   {
     while (radio.available())                                     // While there is data ready
@@ -78,7 +76,7 @@ void loop()
     
 #ifdef DBG_PRINTS    
     Serial.print(F("Received data: "));
-    Serial.println(got_time);
+    Serial.println(rcvPixel.num);
 #endif //DBG_PRINTS
  }
 
