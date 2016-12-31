@@ -38,6 +38,7 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(60, PIN, NEO_GRB + NEO_KHZ800);
 pixelValue_t sendPixel = {0};
 bool colorUpdate = false;
 
+
 void setup()
 {
 #ifdef DBG_PRINTS
@@ -53,16 +54,12 @@ void setup()
   // Open a writing and reading pipe on each radio, with opposite addresses
   radio.openWritingPipe(addresses[0]);
   radio.openReadingPipe(1,addresses[1]);
-  radio.setPayloadSize(sizeof(pixelValue_t));
+  
+  radio.stopListening();
 
-  //Start the Neopixel strip
+    //Start the Neopixel strip
   strip.begin();
   strip.show(); // Initialize all pixels to 'off'
-
-  radio.stopListening();
-#ifdef DBG_PRINTS
-  Serial.println(F("Now sending"));
-#endif //DBG_PRINTS
 
   //set up color
   sendPixel.red = 255;
@@ -74,8 +71,7 @@ void setup()
 void loop()
 {
 //  unsigned long start_time = micros();                             // Take the time, and send it.  This will block until complete
-  
-  if (!radio.writeBlocking(&sendPixel, sizeof(pixelValue_t), 100))
+  if (!radio.write(&sendPixel, sizeof(pixelValue_t)))
   {
 #ifdef DBG_PRINTS
     Serial.println(F("Send failed"));
@@ -83,17 +79,17 @@ void loop()
   }
   else
   {
-#ifdef DBG_PRINTS
+#ifdef DBG_PRINTS    
     Serial.println(F("Send succeeded"));
 #endif //DBG_PRINTS
   }
 
   strip.setPixelColor(sendPixel.num, strip.Color(sendPixel.red, sendPixel.green, sendPixel.blue));
   strip.show();
-
+  // Wait a second
   delay(1000);
 
-/****************** Change Roles via Serial Commands ***************************/
+  /****************** Change Roles via Serial Commands ***************************/
   if ( Serial.available())
   {
     char c = toupper(Serial.read());
@@ -124,7 +120,6 @@ void loop()
       sendPixel.num = (c - '0');
     }
   }
-
 
 } // Loop
 

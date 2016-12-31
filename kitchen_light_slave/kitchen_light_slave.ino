@@ -53,7 +53,6 @@ void setup()
   // Open a writing and reading pipe on each radio, with opposite addresses
   radio.openWritingPipe(addresses[1]);
   radio.openReadingPipe(1,addresses[0]);
-  radio.setPayloadSize(sizeof(pixelValue_t));
   
   // Start the radio listening for data
   radio.startListening();
@@ -65,26 +64,23 @@ void setup()
 
 void loop()
 {
-  radio.startListening();
-//  unsigned long got_time;
+  unsigned long got_time;
   
   if (radio.available())
   {
-#ifdef DBG_PRINTS
-    Serial.println(F("Data Available"));
-#endif //DBG_PRINTS
-                                                                  // Variable for the received timestamp
     while (radio.available())                                     // While there is data ready
     {
       radio.read(&rcvPixel, sizeof(pixelValue_t));               // Get the payload
     }
-#ifdef DBG_PRINTS
-    Serial.println(F("Received Value"));
-#endif //DBG_PRINTS
 
     strip.setPixelColor(rcvPixel.num, strip.Color(rcvPixel.red, rcvPixel.green, rcvPixel.blue));
     strip.show();
-  }
+    
+#ifdef DBG_PRINTS    
+    Serial.print(F("Received data: "));
+    Serial.println(got_time);
+#endif //DBG_PRINTS
+ }
 
 } // Loop
 
