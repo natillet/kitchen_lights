@@ -9,35 +9,14 @@
  * improvements.
  */
 
-#include <SPI.h>
-#include "RF24.h"
-#include <Adafruit_NeoPixel.h>
+#include "LightComm.h"
+#include "LightPattern.h"
 
-#define DBG_PRINTS 1
-#define PIN 6
-#define NUM_LEDS 40
-
-typedef struct pixelValue {
-  byte red;
-  byte green;
-  byte blue;
-  byte num;
-  byte show;
-} pixelValue_t;
-
-RF24 radio(7,8); // Hardware configuration: Set up nRF24L01 radio on SPI bus plus pins 7 & 8
-byte addresses[][6] = {"1Node","2Node"};
-// Parameter 1 = number of pixels in strip
-// Parameter 2 = Arduino pin number (most are valid)
-// Parameter 3 = pixel type flags, add together as needed:
-//   NEO_KHZ800  800 KHz bitstream (most NeoPixel products w/WS2812 LEDs)
-//   NEO_KHZ400  400 KHz (classic 'v1' (not v2) FLORA pixels, WS2811 drivers)
-//   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
-//   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
-//   NEO_RGBW    Pixels are wired for RGBW bitstream (NeoPixel RGBW products)
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(60, PIN, NEO_GRB + NEO_KHZ800);
-pixelValue_t rcvPixel = {0};
-bool colorUpdate = false;
+displayModes_t displayMode = COLOR_ONLY;
+LightComm lc(SLAVE);
+LightPattern lp(60, 6);
+pixelColor_t color;
+displayModes_t mode;
 
 void setup()
 {
@@ -45,52 +24,27 @@ void setup()
   Serial.begin(115200);
   Serial.println(F("Kitchen Lights Slave Arduino"));
 #endif //DBG_PRINTS
-  
-  radio.begin();
-
-  // Set the PA Level. RF24_PA_MAX is default.
-//  radio.setPALevel(RF24_PA_LOW);
-  
-  // Open a writing and reading pipe on each radio, with opposite addresses
-  radio.openWritingPipe(addresses[1]);
-  radio.openReadingPipe(1,addresses[0]);
-  
-  // Start the radio listening for data
-  radio.startListening();
-
-  //Start the Neopixel strip
-  strip.begin();
-  strip.show(); // Initialize all pixels to 'off'
+  color = {0};
+  mode = COLOR_ONLY;
 }
 
 void loop()
 {  
-  if (radio.available())
+  if(lc.LightUpdateQuery(&mode, &color))
   {
-    while (radio.available())                                     // While there is data ready
+    switch(mode)
     {
-      radio.read(&rcvPixel, sizeof(pixelValue_t));               // Get the payload
+      case COLOR_ONLY:
+        lp.SetAllLightsColor(color);
+        break;
+      case RAINBOW:
+        lp.SetRainbow();
+        break;
+      default:
+        break;
     }
+  }
 
-    strip.setPixelColor(rcvPixel.num, strip.Color(rcvPixel.red, rcvPixel.green, rcvPixel.blue));
-    if (rcvPixel.show)
-    {
-      strip.show();
-    }
-    
-#ifdef DBG_PRINTS
-    Serial.print(F("Received data: "));
-    Serial.print(rcvPixel.red);
-    Serial.print(F(" "));
-    Serial.print(rcvPixel.green);
-    Serial.print(F(" "));
-    Serial.print(rcvPixel.blue);
-    Serial.print(F(" "));
-    Serial.print(rcvPixel.num);
-    Serial.print(F(" "));
-    Serial.println(rcvPixel.show);
-#endif //DBG_PRINTS
- }
 
 } // Loop
 
