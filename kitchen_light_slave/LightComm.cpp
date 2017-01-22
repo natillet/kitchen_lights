@@ -3,7 +3,7 @@
 
 LightComm::LightComm(RadioType_t controllerType)
 {
-  RF24 *m_pRadio = new RF24(7,8); // Hardware configuration: Set up nRF24L01 radio on SPI bus plus pins 7 & 8
+  m_pRadio = new RF24(7,8); // Hardware configuration: Set up nRF24L01 radio on SPI bus plus pins 7 & 8
 
   m_pRadio->begin();
   // Set the PA Level. RF24_PA_MAX is default.
@@ -29,60 +29,77 @@ LightComm::LightComm(RadioType_t controllerType)
 
 LightComm::~LightComm()
 {
-  //destruct anything?
-}
-
-void LightComm::CommandMode(displayModes_t mode)
-{
-  if (mode != m_currMode)
+  if (m_pRadio != NULL)
   {
-    m_currMode = mode;
-	SendCommand(m_currMode, m_currColor);
+    delete m_pRadio;
   }
 }
 
-void LightComm::CommandColor(pixelColor_t color)
+bool LightComm::CommandMode(displayModes_t mode)
 {
-  if (color.red != m_currColor.red || 
-       color.green != m_currColor.green || 
-	   color.blue != m_currColor.blue)
-  {
-    // m_currColor.red = color.red;
-    // m_currColor.green = color.green;
-    // m_currColor.blue = color.blue;
-	m_currColor = color;
-	m_currMode = COLOR_ONLY;
-	SendCommand(m_currMode, m_currColor);
-  }
-}
-
-void LightComm::SendCommand(displayModes_t mode, pixelColor_t color)
-{
-  // m_currColor.red = color.red;
-  // m_currColor.green = color.green;
-  // m_currColor.blue = color.blue;
-  m_currColor = color;
+  bool result = false;
+  
   m_currMode = mode;
-  lightCommand_t command = {mode, color};
+  result = SendCommand();
+  
+  return result;
+}
+
+bool LightComm::CommandColor(pixelColor_t color)
+{
+  bool result = false;
+  m_currColor.red = color.red;
+  m_currColor.green = color.green;
+  m_currColor.blue = color.blue;
+  
+#ifdef DBG_PRINTS
+  Serial.print(F("Commanding color: "));
+  Serial.print(m_currColor.red);
+  Serial.print(F(" "));
+  Serial.print(m_currColor.green);
+  Serial.print(F(" "));
+  Serial.println(m_currColor.blue);
+#endif //DBG_PRINTS
+
+	m_currMode = COLOR_ONLY;
+	result = SendCommand();
+ 
+  return result;
+}
+
+bool LightComm::SendCommand()
+{
+  bool result = false;
+  
+  lightCommand_t command = {0};
+  command.mode = m_currMode;
+  command.color.red = m_currColor.red;
+  command.color.green = m_currColor.green;
+  command.color.blue = m_currColor.blue;
   
   if (!m_pRadio->write(&command, sizeof(lightCommand_t)))
   {
-  #ifdef DBG_PRINTS
+    result = false;
+#ifdef DBG_PRINTS
     Serial.println(F("Send failed"));
-  #endif //DBG_PRINTS
+#endif //DBG_PRINTS
   }
   else
   {
-  #ifdef DBG_PRINTS
-    Serial.print(color.red);
+    result = true;
+#ifdef DBG_PRINTS
+    Serial.print(F("Sending color: "));
+    Serial.print(command.color.red);
     Serial.print(F(" "));
-    Serial.print(color.green);
+    Serial.print(command.color.green);
     Serial.print(F(" "));
-    Serial.println(color.blue);
-  #endif //DBG_PRINTS
+    Serial.println(command.color.blue);
+#endif //DBG_PRINTS
   }
 
   delayMicroseconds(MIN_TX_DELAY_US);
+
+  return result;
 }
 
 bool LightComm::LightUpdateQuery(displayModes_t *mode, pixelColor_t *color)
@@ -97,8 +114,14 @@ bool LightComm::LightUpdateQuery(displayModes_t *mode, pixelColor_t *color)
     }
 
     resultIsUpdateLights = true;
-    m_currColor = command.color;
-    *color = command.color;
+//    m_currColor = command.color;
+//    *color = command.color;
+    m_currColor.red = command.color.red;
+    m_currColor.green = command.color.green;
+    m_currColor.blue = command.color.blue;
+    (*color).red = command.color.red;
+    (*color).green = command.color.green;
+    (*color).blue = command.color.blue;
     m_currMode = command.mode;
     *mode = command.mode;
     
@@ -109,7 +132,12 @@ bool LightComm::LightUpdateQuery(displayModes_t *mode, pixelColor_t *color)
     Serial.print(m_currColor.green);
     Serial.print(F(" "));
     Serial.println(m_currColor.blue);
+  }
+  else
+  {
+    Serial.println("No data received");
 #endif //DBG_PRINTS
   }
   return resultIsUpdateLights;
 }
+

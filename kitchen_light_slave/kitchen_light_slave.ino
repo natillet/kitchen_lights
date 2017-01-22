@@ -13,10 +13,11 @@
 #include "LightPattern.h"
 
 displayModes_t displayMode = COLOR_ONLY;
-LightComm lc(SLAVE);
-LightPattern lp(60, 6);
+LightComm* lc;
+LightPattern* lp;
 pixelColor_t color;
 displayModes_t mode;
+bool refresh = false;
 
 void setup()
 {
@@ -24,27 +25,46 @@ void setup()
   Serial.begin(115200);
   Serial.println(F("Kitchen Lights Slave Arduino"));
 #endif //DBG_PRINTS
+
+  lc = new LightComm(SLAVE);
+  lp = new LightPattern(60, 6);
+  
   color = {0};
   mode = COLOR_ONLY;
+  
+  Serial.println("end setup");
 }
 
 void loop()
-{  
-  if(lc.LightUpdateQuery(&mode, &color))
+{
+  displayModes_t temp_mode;
+  pixelColor_t temp_color;
+  
+  if (lc->LightUpdateQuery(&temp_mode, &temp_color))
   {
-    switch(mode)
-    {
-      case COLOR_ONLY:
-        lp.SetAllLightsColor(color);
-        break;
-      case RAINBOW:
-        lp.SetRainbow();
-        break;
-      default:
-        break;
-    }
+    Serial.println("received light update");
+    mode = temp_mode;
+    color = temp_color;
+    refresh = true;
   }
 
+  switch(mode)
+  {
+    case COLOR_ONLY:
+      if (refresh)
+      {
+        lp->SetAllLightsColor(color);
+        refresh = false;
+      }
+      break;
+    case RAINBOW:
+      lp->SetRainbow();
+      break;
+    default:
+      break;
+  }
+  // Wait a moment (impacts rainbox speed)
+  delay(LOOP_DELAY);  
 
 } // Loop
 

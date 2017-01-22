@@ -6,11 +6,13 @@
 #include "LightComm.h"
 typedef unsigned char byte;
 
+#define LOOP_DELAY 20
+
 class LightPattern
 {
 private:
   uint16_t m_pixelCount;
-  Adafruit_NeoPixel *m_strip;
+  Adafruit_NeoPixel *m_pStrip;
   
   void Wheel(byte WheelPos, byte *red, byte *green, byte *blue);
   

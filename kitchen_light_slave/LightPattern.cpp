@@ -1,8 +1,9 @@
 #include "LightPattern.h"
 
-LightPattern::LightPattern(int pixelCount, int pin)
+LightPattern::LightPattern(uint16_t pixelCount, uint8_t pin)
 {
   m_pixelCount = pixelCount;
+//  m_colorUpdate = true;
   // Parameter 1 = number of pixels in strip
   // Parameter 2 = Arduino pin number (most are valid)
   // Parameter 3 = pixel type flags, add together as needed:
@@ -11,30 +12,33 @@ LightPattern::LightPattern(int pixelCount, int pin)
   //   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
   //   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
   //   NEO_RGBW    Pixels are wired for RGBW bitstream (NeoPixel RGBW products)
-  Adafruit_NeoPixel strip = Adafruit_NeoPixel(pixelCount, pin, NEO_GRB + NEO_KHZ800);
+  m_pStrip = new Adafruit_NeoPixel(m_pixelCount, pin, NEO_GRB + NEO_KHZ800);
 
-  strip.begin();
-  strip.show(); //init all pixels to off
+  m_pStrip->begin();
+  m_pStrip->show(); //init all pixels to off
 }
 
 LightPattern::~LightPattern()
 {
-  //destruct anything?
+  if (m_pStrip != NULL)
+  {
+    delete m_pStrip;
+  }
 }
 
 void LightPattern::SetAllLightsColor(pixelColor_t color)
 {
   for (int i = 0; i < m_pixelCount; i++)
   {
-    strip.setPixelColor(i, strip.Color(color.red, color.green, color.blue));
+    m_pStrip->setPixelColor(i, m_pStrip->Color(color.red, color.green, color.blue));
   }
-  strip.show();
+  m_pStrip->show();
 }
 
 void LightPattern::SetRainbow(void)
 {
   static uint16_t j = 0;
-  const int wait = 1;
+  const int wait = 20;
   byte temp_red = 0;
   byte temp_green = 0;
   byte temp_blue = 0;
@@ -42,9 +46,10 @@ void LightPattern::SetRainbow(void)
   for (uint16_t i = 0; i < m_pixelCount; i++)
   {
     Wheel(((i * 256 / m_pixelCount) + j) & 255, &temp_red, &temp_green, &temp_blue);
-    strip.setPixelColor(i, strip.Color(temp_red, temp_green, temp_blue));
+    m_pStrip->setPixelColor(i, m_pStrip->Color(temp_red, temp_green, temp_blue));
   }
-  delay(wait);
+  m_pStrip->show();
+//  delay(wait);  //elave this to the loop
   j++;
   if (j >= 256)
   {
@@ -81,3 +86,4 @@ void LightPattern::Wheel(byte WheelPos, byte *red, byte *green, byte *blue) {
     *blue = 0;
   }
 }
+

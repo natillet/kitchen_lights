@@ -16,6 +16,7 @@
 #include "LightPattern.h"
 
 #define DBG_PRINTS 1
+#define REFRESH_RATE 250  //*LOOP_DELAY = 250 * 20ms = 5s
 
 //Prototype(s)
 void readSerialCommand(void);
@@ -23,64 +24,67 @@ void readSerialCommand(void);
 displayModes_t displayMode = COLOR_ONLY;
 LightComm* lc;
 LightPattern* lp;
-pixelColor_t color; //= {255, 0, 0};
+pixelColor_t color;
 bool colorUpdate = true;
+long refreshRateCounter = 0;
 
-//Adafruit_NeoPixel strip = Adafruit_NeoPixel(60, 6, NEO_GRB + NEO_KHZ800);
 
 void setup()
 {
-//#ifdef DBG_PRINTS
+#ifdef DBG_PRINTS
   Serial.begin(115200);
   Serial.println("Kitchen Lights Master Arduino");
-//#endif //DBG_PRINTS
+#endif //DBG_PRINTS
 
-  color.red = 255;
-  color.green = 0;
-  color.blue = 0;
+  lc = new LightComm(MASTER);
+  lp = new LightPattern(60, 6);
+  
+  color = {255, 0, 0};
+  displayMode = COLOR_ONLY;
 
-  LightComm *lc = new LightComm(MASTER);
-  LightPattern *lp = new LightPattern(60, 6);
-
-//  strip.begin();
-//  for (int i = 0; i < 60; i++)
-//  {
-//    strip.setPixelColor(i, strip.Color(255, 0, 0));
-//  }
-//  strip.show();
   Serial.println("end setup");
 }
 
 void loop()
 {
-  if (colorUpdate)
+  switch (displayMode)
   {
-    switch (displayMode)
-    {
-      case COLOR_ONLY:
+    case COLOR_ONLY:
+      if (colorUpdate)
+      {
         Serial.println("Setting color only");
+        if (lc->CommandColor(color))
+        {
+          colorUpdate = false;
+        }
         lp->SetAllLightsColor(color);
-        Serial.println("1");
-        lc->CommandColor(color);
-        Serial.println("2");
-        colorUpdate = false;
-        Serial.println("3");
-        break;
-      case RAINBOW:
+      }
+      break;
+    case RAINBOW:
+      if (colorUpdate)
+      {
         Serial.println(F("Setting rainbow"));
-        lp->SetRainbow();
-        lc->CommandMode(displayMode);
-        break;
-      default:
-        displayMode = COLOR_ONLY;
-        break;
-    }
+        if (lc->CommandMode(displayMode))
+        {
+          colorUpdate = false;
+        }
+      }
+      lp->SetRainbow();
+      break;
+    default:
+      displayMode = COLOR_ONLY;
+      break;
   }
-  // Wait a second
-  delay(1000);
+  // Wait a moment (impacts rainbox speed)
+  delay(LOOP_DELAY);
 
-//TODO add a sleep here??
   readSerialCommand();
+
+  if (refreshRateCounter++ > REFRESH_RATE)
+  {
+    refreshRateCounter = 0;
+    colorUpdate = true;
+  }
 
 } // Loop
 

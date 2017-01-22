@@ -29,42 +29,48 @@ LightComm::LightComm(RadioType_t controllerType)
 
 LightComm::~LightComm()
 {
-  //destruct anything?
-}
-
-void LightComm::CommandMode(displayModes_t mode)
-{
-  if (mode != m_currMode)
+  if (m_pRadio != NULL)
   {
-    m_currMode = mode;
-	  SendCommand();
+    delete m_pRadio;
   }
 }
 
-void LightComm::CommandColor(pixelColor_t color)
+bool LightComm::CommandMode(displayModes_t mode)
 {
-  if (color.red != m_currColor.red || 
-       color.green != m_currColor.green || 
-	   color.blue != m_currColor.blue)
-  {
-    m_currColor.red = color.red;
-    m_currColor.green = color.green;
-    m_currColor.blue = color.blue;
+  bool result = false;
+  
+  m_currMode = mode;
+  result = SendCommand();
+  
+  return result;
+}
+
+bool LightComm::CommandColor(pixelColor_t color)
+{
+  bool result = false;
+  m_currColor.red = color.red;
+  m_currColor.green = color.green;
+  m_currColor.blue = color.blue;
+  
 #ifdef DBG_PRINTS
-    Serial.print(F("Commanding color: "));
-    Serial.print(m_currColor.red);
-    Serial.print(F(" "));
-    Serial.print(m_currColor.green);
-    Serial.print(F(" "));
-    Serial.println(m_currColor.blue);
+  Serial.print(F("Commanding color: "));
+  Serial.print(m_currColor.red);
+  Serial.print(F(" "));
+  Serial.print(m_currColor.green);
+  Serial.print(F(" "));
+  Serial.println(m_currColor.blue);
 #endif //DBG_PRINTS
-  	m_currMode = COLOR_ONLY;
-  	SendCommand();
-  }
+
+	m_currMode = COLOR_ONLY;
+	result = SendCommand();
+ 
+  return result;
 }
 
-void LightComm::SendCommand()
+bool LightComm::SendCommand()
 {
+  bool result = false;
+  
   lightCommand_t command = {0};
   command.mode = m_currMode;
   command.color.red = m_currColor.red;
@@ -73,12 +79,14 @@ void LightComm::SendCommand()
   
   if (!m_pRadio->write(&command, sizeof(lightCommand_t)))
   {
+    result = false;
 #ifdef DBG_PRINTS
     Serial.println(F("Send failed"));
 #endif //DBG_PRINTS
   }
   else
   {
+    result = true;
 #ifdef DBG_PRINTS
     Serial.print(F("Sending color: "));
     Serial.print(command.color.red);
@@ -90,6 +98,8 @@ void LightComm::SendCommand()
   }
 
   delayMicroseconds(MIN_TX_DELAY_US);
+
+  return result;
 }
 
 bool LightComm::LightUpdateQuery(displayModes_t *mode, pixelColor_t *color)

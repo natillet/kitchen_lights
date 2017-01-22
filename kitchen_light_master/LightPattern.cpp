@@ -12,39 +12,33 @@ LightPattern::LightPattern(uint16_t pixelCount, uint8_t pin)
   //   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
   //   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
   //   NEO_RGBW    Pixels are wired for RGBW bitstream (NeoPixel RGBW products)
-  m_strip = new Adafruit_NeoPixel(m_pixelCount, pin, NEO_GRB + NEO_KHZ800);
+  m_pStrip = new Adafruit_NeoPixel(m_pixelCount, pin, NEO_GRB + NEO_KHZ800);
 
-  m_strip->begin();
-  pixelColor_t color_green = {255, 255, 0};
-  SetAllLightsColor(color_green);
-  m_strip->show(); //init all pixels to off
+  m_pStrip->begin();
+  m_pStrip->show(); //init all pixels to off
 }
 
 LightPattern::~LightPattern()
 {
-  //destruct anything?
+  if (m_pStrip != NULL)
+  {
+    delete m_pStrip;
+  }
 }
 
 void LightPattern::SetAllLightsColor(pixelColor_t color)
 {
-  Serial.print("SetAllLightsColor: R ");
-  Serial.print(color.red);
-  Serial.print(" G ");
-  Serial.print(color.green);
-  Serial.print(" B ");
-  Serial.println(color.blue);
   for (int i = 0; i < m_pixelCount; i++)
   {
-    m_strip->setPixelColor(i, m_strip->Color(color.red, color.green, color.blue));
-//    m_strip->setPixelColor(i, m_strip->Color(0, 255, 0));
+    m_pStrip->setPixelColor(i, m_pStrip->Color(color.red, color.green, color.blue));
   }
-  m_strip->show();
+  m_pStrip->show();
 }
 
 void LightPattern::SetRainbow(void)
 {
   static uint16_t j = 0;
-  const int wait = 1;
+  const int wait = 20;
   byte temp_red = 0;
   byte temp_green = 0;
   byte temp_blue = 0;
@@ -52,10 +46,10 @@ void LightPattern::SetRainbow(void)
   for (uint16_t i = 0; i < m_pixelCount; i++)
   {
     Wheel(((i * 256 / m_pixelCount) + j) & 255, &temp_red, &temp_green, &temp_blue);
-    m_strip->setPixelColor(i, m_strip->Color(temp_red, temp_green, temp_blue));
+    m_pStrip->setPixelColor(i, m_pStrip->Color(temp_red, temp_green, temp_blue));
   }
-  m_strip->show();
-  delay(wait);
+  m_pStrip->show();
+//  delay(wait);  //elave this to the loop
   j++;
   if (j >= 256)
   {

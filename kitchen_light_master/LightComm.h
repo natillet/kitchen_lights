@@ -40,14 +40,14 @@ private:
   pixelColor_t m_currColor;
   displayModes_t m_currMode;
 
-  void SendCommand();
+  bool SendCommand();
   
 public:
   LightComm(RadioType_t);
   ~LightComm();
 
-  void CommandMode(displayModes_t mode);
-  void CommandColor(pixelColor_t color);
+  bool CommandMode(displayModes_t mode);
+  bool CommandColor(pixelColor_t color);
   bool LightUpdateQuery(displayModes_t *mode, pixelColor_t *color);
 };
 
