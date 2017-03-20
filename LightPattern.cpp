@@ -2,7 +2,7 @@
 
 LightPattern::LightPattern(uint16_t pixelCount, uint8_t pin)
 {
-  m_pixelCount = pixelCount;
+  this->pixelCount = pixelCount;
 //  m_colorUpdate = true;
   // Parameter 1 = number of pixels in strip
   // Parameter 2 = Arduino pin number (most are valid)
@@ -12,27 +12,27 @@ LightPattern::LightPattern(uint16_t pixelCount, uint8_t pin)
   //   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
   //   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
   //   NEO_RGBW    Pixels are wired for RGBW bitstream (NeoPixel RGBW products)
-  m_pStrip = new Adafruit_NeoPixel(m_pixelCount, pin, NEO_GRB + NEO_KHZ800);
+  this->pStrip = new Adafruit_NeoPixel(this->pixelCount, pin, NEO_GRB + NEO_KHZ800);
 
-  m_pStrip->begin();
-  m_pStrip->show(); //init all pixels to off
+  this->pStrip->begin();
+  this->pStrip->show(); //init all pixels to off
 }
 
 LightPattern::~LightPattern()
 {
-  if (m_pStrip != NULL)
+  if (this->pStrip != NULL)
   {
-    delete m_pStrip;
+    delete this->pStrip;
   }
 }
 
 void LightPattern::SetAllLightsColor(pixelColor_t color)
 {
-  for (int i = 0; i < m_pixelCount; i++)
+  for (int i = 0; i < this->pixelCount; i++)
   {
-    m_pStrip->setPixelColor(i, m_pStrip->Color(color.red, color.green, color.blue));
+    this->pStrip->setPixelColor(i, this->pStrip->Color(color.red, color.green, color.blue));
   }
-  m_pStrip->show();
+  this->pStrip->show();
 }
 
 void LightPattern::SetRainbow(void)
@@ -43,12 +43,12 @@ void LightPattern::SetRainbow(void)
   byte temp_green = 0;
   byte temp_blue = 0;
 
-  for (uint16_t i = 0; i < m_pixelCount; i++)
+  for (uint16_t i = 0; i < this->pixelCount; i++)
   {
-    Wheel(((i * 256 / m_pixelCount) + j) & 255, &temp_red, &temp_green, &temp_blue);
-    m_pStrip->setPixelColor(i, m_pStrip->Color(temp_red, temp_green, temp_blue));
+    Wheel(((i * 256 / this->pixelCount) + j) & 255, &temp_red, &temp_green, &temp_blue);
+    this->pStrip->setPixelColor(i, this->pStrip->Color(temp_red, temp_green, temp_blue));
   }
-  m_pStrip->show();
+  this->pStrip->show();
 //  delay(wait);  //elave this to the loop
   j++;
   if (j >= 256)

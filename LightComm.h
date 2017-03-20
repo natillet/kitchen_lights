@@ -4,9 +4,9 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include <RF24.h>
+#include "kitchen_lights.h"
 typedef unsigned char byte;
 
-#define DBG_PRINTS 1
 #define MIN_TX_DELAY_US 1000
 
 typedef enum {
@@ -33,12 +33,12 @@ typedef enum {
 
 static const byte addresses[][6] = {"1Node","2Node"};
 
+
 class LightComm
 {
 private:
-  RF24* m_pRadio;
-  pixelColor_t m_currColor;
-  displayModes_t m_currMode;
+  RF24* pRadio;
+  lightCommand_t command;
 
   bool SendCommand();
   
@@ -46,8 +46,8 @@ public:
   LightComm(RadioType_t);
   ~LightComm();
 
-  bool CommandMode(displayModes_t mode);
-  bool CommandColor(pixelColor_t color);
+  bool SendModeCommand(displayModes_t mode);
+  bool SendColorCommand(pixelColor_t color);
   bool LightUpdateQuery(displayModes_t *mode, pixelColor_t *color);
 };
 

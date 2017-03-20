@@ -3,65 +3,63 @@
 
 LightComm::LightComm(RadioType_t controllerType)
 {
-  m_pRadio = new RF24(7,8); // Hardware configuration: Set up nRF24L01 radio on SPI bus plus pins 7 & 8
+  this->pRadio = new RF24(7,8); // Hardware configuration: Set up nRF24L01 radio on SPI bus plus pins 7 & 8
 
-  m_pRadio->begin();
+  this->pRadio->begin();
   // Set the PA Level. RF24_PA_MAX is default.
-//  m_pRadio->setPALevel(RF24_PA_LOW);
+//  this->pRadio->setPALevel(RF24_PA_LOW);
   
   // Open a writing and reading pipe on each radio, with opposite addresses
   if (controllerType == MASTER)
   {
-    m_pRadio->openWritingPipe(addresses[0]);  //uses pipe 0
-    m_pRadio->openReadingPipe(1,addresses[1]);
+    this->pRadio->openWritingPipe(addresses[0]);  //uses pipe 0
+    this->pRadio->openReadingPipe(1,addresses[1]);
+    this->pRadio->stopListening();
   }
   else
   {
-    m_pRadio->openWritingPipe(addresses[1]);  //uses pipe 0
-    m_pRadio->openReadingPipe(1,addresses[0]);
+    this->pRadio->openWritingPipe(addresses[1]);
+    this->pRadio->openReadingPipe(1,addresses[0]);  //uses pipe 0
+    this->pRadio->startListening();
   }
 
-  m_currColor.red = 0;
-  m_currColor.green = 0;
-  m_currColor.blue = 0;
-  m_currMode = COLOR_ONLY;
+//  this->pRadio->printDetails();
+  this->command = {0};
 }
 
 LightComm::~LightComm()
 {
-  if (m_pRadio != NULL)
+  if (this->pRadio != NULL)
   {
-    delete m_pRadio;
+    delete this->pRadio;
   }
 }
 
-bool LightComm::CommandMode(displayModes_t mode)
+bool LightComm::SendModeCommand(displayModes_t mode)
 {
   bool result = false;
   
-  m_currMode = mode;
+  this->command.mode = mode;
   result = SendCommand();
   
   return result;
 }
 
-bool LightComm::CommandColor(pixelColor_t color)
+bool LightComm::SendColorCommand(pixelColor_t color)
 {
   bool result = false;
-  m_currColor.red = color.red;
-  m_currColor.green = color.green;
-  m_currColor.blue = color.blue;
+  this->command.color.red = color.red;
+  this->command.color.green = color.green;
+  this->command.color.blue = color.blue;
   
-#ifdef DBG_PRINTS
-  Serial.print(F("Commanding color: "));
-  Serial.print(m_currColor.red);
-  Serial.print(F(" "));
-  Serial.print(m_currColor.green);
-  Serial.print(F(" "));
-  Serial.println(m_currColor.blue);
-#endif //DBG_PRINTS
+  DBG_PRINT(F("Commanding color: "));
+  DBG_PRINT(this->command.color.red);
+  DBG_PRINT(F(" "));
+  DBG_PRINT(this->command.color.green);
+  DBG_PRINT(F(" "));
+  DBG_PRINTLN(this->command.color.blue);
 
-	m_currMode = COLOR_ONLY;
+	this->command.mode = COLOR_ONLY;
 	result = SendCommand();
  
   return result;
@@ -70,31 +68,22 @@ bool LightComm::CommandColor(pixelColor_t color)
 bool LightComm::SendCommand()
 {
   bool result = false;
-  
-  lightCommand_t command = {0};
-  command.mode = m_currMode;
-  command.color.red = m_currColor.red;
-  command.color.green = m_currColor.green;
-  command.color.blue = m_currColor.blue;
-  
-  if (!m_pRadio->write(&command, sizeof(lightCommand_t)))
+    
+  if (!this->pRadio->write(&command, sizeof(lightCommand_t)))
   {
     result = false;
-#ifdef DBG_PRINTS
-    Serial.println(F("Send failed"));
-#endif //DBG_PRINTS
+    DBG_PRINTLN(F("Send failed"));
   }
   else
   {
     result = true;
-#ifdef DBG_PRINTS
-    Serial.print(F("Sending color: "));
-    Serial.print(command.color.red);
-    Serial.print(F(" "));
-    Serial.print(command.color.green);
-    Serial.print(F(" "));
-    Serial.println(command.color.blue);
-#endif //DBG_PRINTS
+
+    DBG_PRINT(F("Sending color: "));
+    DBG_PRINT(this->command.color.red);
+    DBG_PRINT(F(" "));
+    DBG_PRINT(this->command.color.green);
+    DBG_PRINT(F(" "));
+    DBG_PRINTLN(this->command.color.blue);
   }
 
   delayMicroseconds(MIN_TX_DELAY_US);
@@ -105,34 +94,30 @@ bool LightComm::SendCommand()
 bool LightComm::LightUpdateQuery(displayModes_t *mode, pixelColor_t *color)
 {
   bool resultIsUpdateLights = false;
-  lightCommand_t command;
-  if (m_pRadio->available())
+  if (this->pRadio->available())
   {
-    while (m_pRadio->available())                                     // While there is data ready
+    while (this->pRadio->available())                                     // While there is data ready
     {
-      m_pRadio->read(&command, sizeof(lightCommand_t));               // Get the payload
+      this->pRadio->read(&this->command, sizeof(lightCommand_t));               // Get the payload
+      DBG_PRINTLN("waiting for dataz");
     }
 
     resultIsUpdateLights = true;
-//    m_currColor = command.color;
-//    *color = command.color;
-    m_currColor.red = command.color.red;
-    m_currColor.green = command.color.green;
-    m_currColor.blue = command.color.blue;
-    (*color).red = command.color.red;
-    (*color).green = command.color.green;
-    (*color).blue = command.color.blue;
-    m_currMode = command.mode;
-    *mode = command.mode;
+    (*color).red = this->command.color.red;
+    (*color).green = this->command.color.green;
+    (*color).blue = this->command.color.blue;
+    *mode = this->command.mode;
     
-#ifdef DBG_PRINTS
-    Serial.print(F("Received data: "));
-    Serial.print(m_currColor.red);
-    Serial.print(F(" "));
-    Serial.print(m_currColor.green);
-    Serial.print(F(" "));
-    Serial.println(m_currColor.blue);
-#endif //DBG_PRINTS
+    DBG_PRINT(F("Received data: "));
+    DBG_PRINT(this->command.color.red);
+    DBG_PRINT(F(" "));
+    DBG_PRINT(this->command.color.green);
+    DBG_PRINT(F(" "));
+    DBG_PRINTLN(this->command.color.blue);
+  }
+  else
+  {
+    DBG_PRINTLN("radio not available");
   }
   return resultIsUpdateLights;
 }
